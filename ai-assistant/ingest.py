@@ -43,17 +43,18 @@ CODE_EXTS = {
 
 
 def load_file(filepath: Path) -> list[Document]:
+    fpath = filepath.resolve()  # 统一存绝对路径
     ext = filepath.suffix.lower()
     if ext == ".pdf":
-        return load_pdf(filepath)
+        return load_pdf(fpath)
     elif ext == ".docx":
-        return load_docx(filepath)
+        return load_docx(fpath)
     elif ext in (".html", ".htm"):
-        return load_html(filepath)
+        return load_html(fpath)
     elif ext in CODE_EXTS:
-        return load_code(filepath)
+        return load_code(fpath)
     else:
-        return load_text(filepath)
+        return load_text(fpath)
 
 
 def load_pdf(filepath: Path) -> list[Document]:
@@ -128,63 +129,82 @@ def load_text(filepath: Path) -> list[Document]:
     return []
 
 
-# 4. 扫描并加载所有文件
-data_dir = Path("data")
-all_documents = []
-file_stats: dict[str, int] = {}
+# 4. 分块：代码文件用更小的 chunk_size=256，其他用 512
+def chunk_documents(documents: list[Document]) -> list:
+    """将文档列表分块，代码文件和普通文件使用不同的 chunk 策略"""
+    code_docs = [d for d in documents if d.metadata.get("type") == "code"]
+    other_docs = [d for d in documents if d.metadata.get("type") != "code"]
+    nodes = []
+    if code_docs:
+        code_parser = SentenceSplitter(chunk_size=256, chunk_overlap=30)
+        code_nodes = code_parser.get_nodes_from_documents(code_docs)
+        print(f"  [CODE] 代码文件: {len(code_docs)} 个 -> {len(code_nodes)} 个块 (chunk_size=256)")
+        nodes.extend(code_nodes)
+    if other_docs:
+        text_parser = SentenceSplitter(chunk_size=512, chunk_overlap=50)
+        other_nodes = text_parser.get_nodes_from_documents(other_docs)
+        print(f"  [TEXT] 其他文件: {len(other_docs)} 个 -> {len(other_nodes)} 个块 (chunk_size=512)")
+        nodes.extend(other_nodes)
+    return nodes
 
-for filepath in sorted(data_dir.rglob("*")):
-    if not filepath.is_file():
-        continue
-    # 跳过隐藏文件和临时文件
-    if filepath.name.startswith(".") or filepath.suffix.lower() in (".tmp", ".temp"):
-        continue
-    try:
-        docs = load_file(filepath)
-        all_documents.extend(docs)
-        ext = filepath.suffix.lower() or "(无后缀)"
-        file_stats[ext] = file_stats.get(ext, 0) + 1
-        if docs:
-            print(f"  [OK] {filepath.suffix or '  ':6s} {filepath.name}")
-        else:
-            print(f"  [EMPTY] {filepath.name}")
-    except Exception as e:
-        print(f"  [ERR] {filepath.name} — {e}")
 
-total = len(all_documents)
-print(f"\n[DOCS] 共加载 {total} 个文档")
-if file_stats:
-    print("   格式分布:", ", ".join(f"{ext}: {n}" for ext, n in sorted(file_stats.items())))
+def ingest_file(filepath: Path) -> int:
+    """导入单个文件，返回生成的 chunk 数量"""
+    docs = load_file(filepath)
+    if not docs:
+        return 0
+    nodes = chunk_documents(docs)
+    if nodes:
+        index = VectorStoreIndex(
+            nodes=nodes,
+            storage_context=storage_context,
+            show_progress=False,
+        )
+    return len(nodes)
 
-if total == 0:
-    print("[WARN] 没有需要处理的文档，退出。")
-    exit(0)
 
-# 5. 分块：代码文件用更小的 chunk_size=256，其他用 512
-code_docs = [d for d in all_documents if d.metadata.get("type") == "code"]
-other_docs = [d for d in all_documents if d.metadata.get("type") != "code"]
+# 5. 扫描并批量导入（CLI 模式）
+if __name__ == "__main__":
+    data_dir = Path("data")
+    all_documents = []
+    file_stats: dict[str, int] = {}
 
-all_nodes = []
+    for filepath in sorted(data_dir.rglob("*")):
+        if not filepath.is_file():
+            continue
+        # 跳过隐藏文件和临时文件
+        if filepath.name.startswith(".") or filepath.suffix.lower() in (".tmp", ".temp"):
+            continue
+        try:
+            docs = load_file(filepath)
+            all_documents.extend(docs)
+            ext = filepath.suffix.lower() or "(无后缀)"
+            file_stats[ext] = file_stats.get(ext, 0) + 1
+            if docs:
+                print(f"  [OK] {filepath.suffix or '  ':6s} {filepath.name}")
+            else:
+                print(f"  [EMPTY] {filepath.name}")
+        except Exception as e:
+            print(f"  [ERR] {filepath.name} — {e}")
 
-if code_docs:
-    code_parser = SentenceSplitter(chunk_size=256, chunk_overlap=30)
-    code_nodes = code_parser.get_nodes_from_documents(code_docs)
-    print(f"  [CODE] 代码文件: {len(code_docs)} 个 -> {len(code_nodes)} 个块 (chunk_size=256)")
-    all_nodes.extend(code_nodes)
+    total = len(all_documents)
+    print(f"\n[DOCS] 共加载 {total} 个文档")
+    if file_stats:
+        print("   格式分布:", ", ".join(f"{ext}: {n}" for ext, n in sorted(file_stats.items())))
 
-if other_docs:
-    text_parser = SentenceSplitter(chunk_size=512, chunk_overlap=50)
-    other_nodes = text_parser.get_nodes_from_documents(other_docs)
-    print(f"  [TEXT] 其他文件: {len(other_docs)} 个 -> {len(other_nodes)} 个块 (chunk_size=512)")
-    all_nodes.extend(other_nodes)
+    if total == 0:
+        print("[WARN] 没有需要处理的文档，退出。")
+        exit(0)
 
-# 6. 构建索引
-index = VectorStoreIndex(
-    nodes=all_nodes,
-    storage_context=storage_context,
-    show_progress=True,
-)
+    all_nodes = chunk_documents(all_documents)
 
-count = chroma_collection.count()
-print(f"\n[DONE] 索引构建完成！")
-print(f"[STATS] 向量库中文档块数: {count}")
+    # 6. 构建索引
+    index = VectorStoreIndex(
+        nodes=all_nodes,
+        storage_context=storage_context,
+        show_progress=True,
+    )
+
+    count = chroma_collection.count()
+    print(f"\n[DONE] 索引构建完成！")
+    print(f"[STATS] 向量库中文档块数: {count}")

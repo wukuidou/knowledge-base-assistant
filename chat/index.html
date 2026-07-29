@@ -180,6 +180,130 @@
     padding: 4px 0;
     text-align: center;
   }
+  /* Upload panel */
+  #upload-toggle {
+    background: none;
+    border: 1px solid var(--border);
+    color: var(--text);
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.15s;
+    opacity: 0.6;
+  }
+  #upload-toggle:hover { opacity: 1; background: var(--border); }
+  #upload-toggle.active { opacity: 1; background: var(--accent); color: #fff; border-color: var(--accent); }
+  #upload-panel {
+    display: none;
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px 20px;
+    margin: 0 20px 12px 20px;
+    flex-shrink: 0;
+    animation: fadeIn 0.2s ease;
+  }
+  #upload-panel.show { display: block; }
+  .drop-zone {
+    border: 2px dashed var(--border);
+    border-radius: 10px;
+    padding: 24px;
+    text-align: center;
+    color: var(--sub);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .drop-zone:hover, .drop-zone.dragover {
+    border-color: var(--accent);
+    background: var(--source-bg);
+    color: var(--accent);
+  }
+  .drop-zone .icon { font-size: 28px; display: block; margin-bottom: 4px; }
+  .drop-zone .hint { font-size: 11px; opacity: 0.6; margin-top: 4px; }
+  #file-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 10px;
+    max-height: 120px;
+    overflow-y: auto;
+  }
+  .file-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--source-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 12px;
+    color: var(--text);
+  }
+  .file-tag .name { max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-tag .size { color: var(--sub); font-size: 10px; }
+  .file-tag .remove {
+    cursor: pointer;
+    color: var(--sub);
+    font-size: 14px;
+    line-height: 1;
+    padding: 0 2px;
+    border-radius: 3px;
+  }
+  .file-tag .remove:hover { color: #ef4444; background: #fee2e2; }
+  .upload-actions {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    margin-top: 10px;
+  }
+  .upload-actions button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    padding: 6px 16px;
+    border-radius: 8px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .upload-actions button:hover { background: var(--accent-hover); }
+  .upload-actions button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .upload-status {
+    font-size: 12px;
+    color: var(--sub);
+  }
+  .upload-status.error { color: #ef4444; }
+  .upload-status.success { color: #22c55e; }
+  #doc-list {
+    margin-top: 10px;
+    max-height: 100px;
+    overflow-y: auto;
+  }
+  .doc-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 3px 0;
+    font-size: 12px;
+    color: var(--sub);
+  }
+  .doc-row .del-doc {
+    background: none;
+    border: none;
+    color: var(--sub);
+    cursor: pointer;
+    font-size: 14px;
+    padding: 0 4px;
+    border-radius: 3px;
+    opacity: 0.5;
+  }
+  .doc-row .del-doc:hover { opacity: 1; color: #ef4444; }
 </style>
 </head>
 <body>
@@ -187,10 +311,26 @@
 <header>
   <h1>📚 Knowledge Base AI</h1>
   <div class="actions">
+    <button id="upload-toggle" onclick="toggleUpload()" title="Upload documents">＋</button>
     <button onclick="clearChat()">🗑 Clear</button>
     <button onclick="toggleTheme()" id="theme-btn">🌙 Dark</button>
   </div>
 </header>
+
+<div id="upload-panel">
+  <div class="drop-zone" id="drop-zone">
+    <span class="icon">📁</span>
+    Drag & drop files here, or click to select
+    <div class="hint">Supports PDF, Word, HTML, code, text · Max 10 files, 50MB each</div>
+  </div>
+  <input type="file" id="file-input" multiple style="display:none" accept=".pdf,.docx,.html,.htm,.txt,.md,.py,.js,.ts,.jsx,.tsx,.java,.cpp,.c,.h,.hpp,.go,.rs,.rb,.php,.swift,.kt,.scala,.sql,.sh,.bash,.m,.r,.css,.json,.xml,.yaml,.yml,.toml,.ini,.cfg">
+  <div id="file-list"></div>
+  <div class="upload-actions">
+    <button id="upload-btn" onclick="doUpload()" disabled>Upload</button>
+    <span class="upload-status" id="upload-status"></span>
+  </div>
+  <div id="doc-list"></div>
+</div>
 
 <div id="chat"></div>
 
@@ -203,12 +343,240 @@
 </footer>
 
 <script>
-const API = 'http://localhost:8000/ask';
+// ---- 配置：部署时改这里 ----
+const BASE = window.location.hostname === 'localhost'
+  ? 'http://localhost:8000'
+  : window.location.origin + '/api';
+const API = BASE + '/ask';
+const UPLOAD_API = BASE + '/upload';
+const DOCS_API = BASE + '/documents';
+const STATUS_API = BASE + '/upload/status';
+
 const sessionId = 'session-' + Math.random().toString(36).slice(2, 10);
 const chat = document.getElementById('chat');
 const input = document.getElementById('input');
 const sendBtn = document.getElementById('send-btn');
 const status = document.getElementById('status');
+
+// ---- Upload ----
+const uploadPanel = document.getElementById('upload-panel');
+const uploadToggle = document.getElementById('upload-toggle');
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('file-input');
+const fileList = document.getElementById('file-list');
+const uploadBtn = document.getElementById('upload-btn');
+const uploadStatus = document.getElementById('upload-status');
+const docList = document.getElementById('doc-list');
+let selectedFiles = [];
+let statusPollTimer = null;
+
+function initUpload() {
+  // 页面加载 / 刷新时重置所有状态
+  selectedFiles = [];
+  fileInput.value = '';
+  renderFileList();
+  setStatus('', '');
+  uploadPanel.classList.remove('show');
+  uploadToggle.classList.remove('active');
+  uploadToggle.textContent = '＋';
+  if (statusPollTimer) { clearInterval(statusPollTimer); statusPollTimer = null; }
+}
+initUpload();
+
+function toggleUpload() {
+  const show = uploadPanel.classList.toggle('show');
+  uploadToggle.classList.toggle('active', show);
+  uploadToggle.textContent = show ? '✕' : '＋';
+  if (show) {
+    loadDocList();
+  } else {
+    // 关闭面板时停止轮询
+    if (statusPollTimer) { clearInterval(statusPollTimer); statusPollTimer = null; }
+  }
+}
+
+// Drag & drop
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('dragover');
+  addFiles(e.dataTransfer.files);
+});
+dropZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', () => addFiles(fileInput.files));
+
+function addFiles(files) {
+  if (selectedFiles.length + files.length > 10) {
+    setStatus('Max 10 files allowed', 'error');
+    return;
+  }
+  for (const f of files) {
+    if (f.size > 50 * 1024 * 1024) {
+      setStatus(`${f.name} exceeds 50MB limit`, 'error');
+      continue;
+    }
+    if (!selectedFiles.find(sf => sf.name === f.name && sf.size === f.size)) {
+      selectedFiles.push(f);
+    }
+  }
+  if (selectedFiles.length > 10) selectedFiles = selectedFiles.slice(0, 10);
+  renderFileList();
+}
+
+function removeFile(idx) {
+  selectedFiles.splice(idx, 1);
+  renderFileList();
+}
+
+function renderFileList() {
+  fileList.innerHTML = selectedFiles.map((f, i) =>
+    `<span class="file-tag">
+      <span class="name">${esc(f.name)}</span>
+      <span class="size">${formatSize(f.size)}</span>
+      <span class="remove" onclick="removeFile(${i})">×</span>
+    </span>`
+  ).join('');
+  uploadBtn.disabled = selectedFiles.length === 0;
+}
+
+async function doUpload() {
+  if (!selectedFiles.length) return;
+  uploadBtn.disabled = true;
+  setStatus('Saving files...', '');
+
+  const form = new FormData();
+  selectedFiles.forEach(f => form.append('files', f));
+
+  try {
+    const res = await fetch(UPLOAD_API, { method: 'POST', body: form });
+    const data = await res.json();
+
+    if (data.errors && data.errors.length) {
+      setStatus(data.errors.join('; '), 'error');
+    }
+    if (data.success && data.success.length) {
+      const names = data.success.map(f => f.name);
+      setStatus(`${data.success.length} file(s) saved, indexing in background...`, 'success');
+      selectedFiles = [];
+      fileInput.value = '';
+      renderFileList();
+      loadDocList();
+      pollStatus(names);
+    }
+  } catch (e) {
+    setStatus('Cannot connect to server. Is the API running?', 'error');
+  } finally {
+    uploadBtn.disabled = selectedFiles.length === 0;
+  }
+}
+
+function pollStatus(names) {
+  if (statusPollTimer) clearInterval(statusPollTimer);
+  const pending = new Set(names);
+  let attempts = 0;
+
+  statusPollTimer = setInterval(async () => {
+    try {
+      const res = await fetch(STATUS_API);
+      const statuses = await res.json();
+      let done = 0, errors = 0;
+
+      for (const name of pending) {
+        const st = statuses[name] || 'pending';
+        if (st === 'done') done++;
+        else if (st.startsWith('error')) errors++;
+      }
+
+      const remaining = pending.size - done - errors;
+      if (remaining > 0) {
+        setStatus(`Indexing... ${done} done, ${remaining} processing, ${errors} failed`, '');
+      } else {
+        clearInterval(statusPollTimer);
+        statusPollTimer = null;
+        if (errors > 0) {
+          setStatus(`Indexing complete: ${done} ok, ${errors} failed`, 'error');
+        } else {
+          setStatus(`All ${done} file(s) indexed ✓`, 'success');
+        }
+        loadDocList();
+      }
+      attempts++;
+      if (attempts > 60) {
+        clearInterval(statusPollTimer);
+        statusPollTimer = null;
+        setStatus(`Indexing timed out — ${pending.size - done - errors} still processing`, 'error');
+        loadDocList();
+      }
+    } catch (e) {
+      // keep polling
+    }
+  }, 2000);
+}
+
+async function loadDocList() {
+  try {
+    const res = await fetch(DOCS_API);
+    const data = await res.json();
+    let statuses = {};
+    try {
+      const sr = await fetch(STATUS_API);
+      statuses = await sr.json();
+    } catch (e) {}
+
+    docList.innerHTML = data.files && data.files.length
+      ? data.files.map(f => {
+          const st = statuses[f.name] || '';
+          const badge = st === 'done' ? ' ✅' :
+                        st.startsWith('error') ? ' ❌' :
+                        st ? ' ⏳' : '';
+          return `<div class="doc-row">
+            <span>📄 ${esc(f.name)} <span style="opacity:0.5">(${formatSize(f.size)})</span>${badge}</span>
+            <button class="del-doc" data-filename="${escAttr(f.name)}" title="Delete">🗑</button>
+          </div>`;
+        }).join('')
+      : '<div class="doc-row" style="opacity:0.5">No documents yet</div>';
+  } catch (e) {
+    docList.innerHTML = '<div class="doc-row" style="opacity:0.5">Failed to load documents</div>';
+  }
+}
+
+// 事件委托：删除按钮点击
+docList.addEventListener('click', e => {
+  const btn = e.target.closest('.del-doc');
+  if (!btn) return;
+  const filename = btn.getAttribute('data-filename');
+  if (filename) deleteDoc(filename);
+});
+
+async function deleteDoc(filename) {
+  if (statusPollTimer) return;
+  try {
+    await fetch(`${DOCS_API}/${encodeURIComponent(filename)}`, { method: 'DELETE' });
+    loadDocList();
+    setStatus(`Deleted: ${filename}`, 'success');
+  } catch (e) {
+    setStatus('Delete failed: ' + e.message, 'error');
+  }
+}
+
+function setStatus(msg, cls) {
+  uploadStatus.textContent = msg;
+  uploadStatus.className = 'upload-status ' + (cls || '');
+}
+
+function formatSize(bytes) {
+  if (bytes < 1024) return bytes + ' B';
+  if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+  return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+}
+
+function esc(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+function escAttr(s) {
+  return s.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
 
 // ---- Send message ----
 async function send() {
@@ -240,7 +608,7 @@ async function send() {
     status.textContent = 'Ready';
   } catch (e) {
     removeLoading(loadId);
-    addBubble('assistant', '⚠️ Connection failed. Is the API running?\n\nStart it with: uvicorn api:app --port 8000');
+    addBubble('assistant', '⚠️ Cannot connect to server. Please check that the API is running.');
     status.textContent = 'Error: ' + e.message;
   }
   sendBtn.disabled = false;
@@ -283,7 +651,7 @@ function removeLoading(id) {
 function clearChat() {
   chat.innerHTML = '';
   status.textContent = 'Chat cleared';
-  fetch(`http://localhost:8000/session/${sessionId}`, { method: 'DELETE' }).catch(() => {});
+  fetch(`${BASE}/session/${sessionId}`, { method: 'DELETE' }).catch(() => {});
 }
 
 function scrollDown() {

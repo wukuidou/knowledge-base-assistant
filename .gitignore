@@ -5,12 +5,16 @@ __pycache__/
 .venv/
 .env
 
+# User uploads
+data/
+
 # Vector store
 storage/
 
 # IDE
 .vscode/
 .idea/
+.claude/settings.local.json
 
 # OS
 Thumbs.db
