@@ -5,35 +5,14 @@ os.environ["HF_ENDPOINT"] = "https://hf-mirror.com"
 import fitz  # pymupdf — PDF
 from pathlib import Path
 from dotenv import load_dotenv
-from llama_index.core import (
-    VectorStoreIndex,
-    Settings,
-    StorageContext,
-    Document,
-)
+from llama_index.core import Document
 from llama_index.core.node_parser import SentenceSplitter
-from llama_index.embeddings.huggingface import HuggingFaceEmbedding
-from llama_index.vector_stores.chroma import ChromaVectorStore
-import chromadb
-
-# ---- 新增格式支持 ----
-from docx import Document as DocxDocument  # Word
-from bs4 import BeautifulSoup             # HTML
+from docx import Document as DocxDocument
+from bs4 import BeautifulSoup
 
 load_dotenv()
 
-# 1. 设置 Embedding 模型
-Settings.embed_model = HuggingFaceEmbedding(
-    model_name="BAAI/bge-small-zh-v1.5",
-)
-
-# 2. 初始化 ChromaDB
-db = chromadb.PersistentClient(path="./storage/chroma_db")
-chroma_collection = db.get_or_create_collection("knowledge_base")
-vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
-storage_context = StorageContext.from_defaults(vector_store=vector_store)
-
-# 3. 格式路由 — 按扩展名分发到对应解析器
+# 格式路由 — 按扩展名分发到对应解析器
 CODE_EXTS = {
     ".py", ".js", ".ts", ".jsx", ".tsx",
     ".java", ".cpp", ".c", ".h", ".hpp",
@@ -76,7 +55,6 @@ def load_docx(filepath: Path) -> list[Document]:
     doc = DocxDocument(str(filepath))
     paragraphs = [p.text for p in doc.paragraphs if p.text.strip()]
     text = "\n\n".join(paragraphs)
-    # 也提取表格内容
     for table in doc.tables:
         for row in table.rows:
             cells = [cell.text.strip() for cell in row.cells]
@@ -129,7 +107,6 @@ def load_text(filepath: Path) -> list[Document]:
     return []
 
 
-# 4. 分块：代码文件用更小的 chunk_size=256，其他用 512
 def chunk_documents(documents: list[Document]) -> list:
     """将文档列表分块，代码文件和普通文件使用不同的 chunk 策略"""
     code_docs = [d for d in documents if d.metadata.get("type") == "code"]
@@ -148,23 +125,29 @@ def chunk_documents(documents: list[Document]) -> list:
     return nodes
 
 
-def ingest_file(filepath: Path) -> int:
-    """导入单个文件，返回生成的 chunk 数量"""
-    docs = load_file(filepath)
-    if not docs:
-        return 0
-    nodes = chunk_documents(docs)
-    if nodes:
-        index = VectorStoreIndex(
-            nodes=nodes,
-            storage_context=storage_context,
-            show_progress=False,
-        )
-    return len(nodes)
-
-
-# 5. 扫描并批量导入（CLI 模式）
+# ──── 以下仅在直接运行 python ingest.py 时执行 ────
 if __name__ == "__main__":
+    from llama_index.core import (
+        VectorStoreIndex,
+        Settings,
+        StorageContext,
+    )
+    from llama_index.embeddings.huggingface import HuggingFaceEmbedding
+    from llama_index.vector_stores.chroma import ChromaVectorStore
+    import chromadb
+
+    # 1. Embedding 模型
+    Settings.embed_model = HuggingFaceEmbedding(
+        model_name="BAAI/bge-small-zh-v1.5",
+    )
+
+    # 2. ChromaDB
+    db = chromadb.PersistentClient(path="./storage/chroma_db")
+    chroma_collection = db.get_or_create_collection("knowledge_base")
+    vector_store = ChromaVectorStore(chroma_collection=chroma_collection)
+    storage_context = StorageContext.from_defaults(vector_store=vector_store)
+
+    # 3. 扫描并加载所有文件
     data_dir = Path("data")
     all_documents = []
     file_stats: dict[str, int] = {}
@@ -172,7 +155,6 @@ if __name__ == "__main__":
     for filepath in sorted(data_dir.rglob("*")):
         if not filepath.is_file():
             continue
-        # 跳过隐藏文件和临时文件
         if filepath.name.startswith(".") or filepath.suffix.lower() in (".tmp", ".temp"):
             continue
         try:
@@ -198,7 +180,7 @@ if __name__ == "__main__":
 
     all_nodes = chunk_documents(all_documents)
 
-    # 6. 构建索引
+    # 4. 构建索引
     index = VectorStoreIndex(
         nodes=all_nodes,
         storage_context=storage_context,
