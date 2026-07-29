@@ -1,0 +1,170 @@
+{
+  "num_cases": 20,
+  "summary": {
+    "faithfulness": 0.5,
+    "answer_relevancy": 0.925,
+    "context_precision": 0.355
+  },
+  "details": [
+    {
+      "question": "define是什么意思",
+      "ground_truth": "v. 下定义，n. 定义",
+      "answer": "根据资料，\"define\"的意思是“下定义，定范围”。",
+      "faithfulness": 0.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.0
+    },
+    {
+      "question": "vanish是什么意思",
+      "ground_truth": "v. 突然消失",
+      "answer": "vanish 的意思是“突然消失，销声匿迹”。",
+      "faithfulness": 0.5,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.0
+    },
+    {
+      "question": "identify是什么意思",
+      "ground_truth": "v. 识别，确认，鉴定",
+      "answer": "根据资料，\"identify\"的意思是“鉴定，识别，确认”。",
+      "faithfulness": 0.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.0
+    },
+    {
+      "question": "statement是什么意思",
+      "ground_truth": "n. 陈述，声明",
+      "answer": "根据资料，statement的意思是：声明，陈述。",
+      "faithfulness": 0.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.0
+    },
+    {
+      "question": "productivity是什么意思",
+      "ground_truth": "n. 生产力",
+      "answer": "根据资料，productivity的意思是“生产力，生产率”。",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0
+    },
+    {
+      "question": "generate是什么意思",
+      "ground_truth": "v. 产生，生成",
+      "answer": "根据资料，generate的意思是：产生，引起，发（热、电）。",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.9
+    },
+    {
+      "question": "release是什么意思",
+      "ground_truth": "v./n. 释放，发布",
+      "answer": "根据资料，\"release\"的意思是**释放，发布**（动词和名词）。",
+      "faithfulness": 0.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.0
+    },
+    {
+      "question": "manufacture是什么意思",
+      "ground_truth": "v. 制造，生产",
+      "answer": "根据资料，manufacture的意思是：v.（用机器大量）制造，虚构；n.制造。",
+      "faithfulness": 0.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.0
+    },
+    {
+      "question": "reflect是什么意思",
+      "ground_truth": "v. 反映，反射，思考",
+      "answer": "根据资料，reflect的意思是：反应，反射，反省，思考，仔细考虑。",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.9
+    },
+    {
+      "question": "contribute是什么意思",
+      "ground_truth": "v. 贡献，投稿，促成",
+      "answer": "根据资料，contribute的意思是：捐献，投稿，贡献，促成。",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 1.0
+    },
+    {
+      "question": "recognize是什么意思",
+      "ground_truth": "v. 认出，承认，识别",
+      "answer": "根据资料，\"recognize\"的意思是：v.认出，承认，意识到。",
+      "faithfulness": 0.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.0
+    },
+    {
+      "question": "motivate是什么意思",
+      "ground_truth": "v. 激发，促使，成为动机",
+      "answer": "根据资料，**motivate** 的意思是：  \nv. 引起动机；激发；激励。",
+      "faithfulness": 0.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.0
+    },
+    {
+      "question": "calculate是什么意思",
+      "ground_truth": "v. 计算",
+      "answer": "根据提供的资料，没有关于\"calculate\"一词的含义或解释。",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.0,
+      "context_precision": 0.0
+    },
+    {
+      "question": "locate是什么意思",
+      "ground_truth": "v. 位于，确定位置",
+      "answer": "根据资料，\"locate\"的意思是：动词，意为“位于，确定…的位置；使坐落于”。",
+      "faithfulness": 0.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.0
+    },
+    {
+      "question": "extract是什么意思",
+      "ground_truth": "v. 提取，摘录",
+      "answer": "根据提供的资料，“extract”的意思是：动词，提取，拔出，摘录；名词，提取物，精华。",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.5
+    },
+    {
+      "question": "specific是什么意思",
+      "ground_truth": "adj. 具体的，特定的，明确的",
+      "answer": "根据提供的资料，\"specific\"的意思是：**adj.具体的，明确的，特定的；n.特效药**。",
+      "faithfulness": 1.0,
+      "answer_relevancy": 0.5,
+      "context_precision": 1.0
+    },
+    {
+      "question": "illustrate是什么意思",
+      "ground_truth": "v. 说明，阐明，加插图",
+      "answer": "根据资料，\"illustrate\"的意思是：（举例）说明，或（书籍、杂志等）加插图。",
+      "faithfulness": 0.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.0
+    },
+    {
+      "question": "publication是什么意思",
+      "ground_truth": "n. 出版，出版物，发表",
+      "answer": "根据资料，publication的意思是：发表，公布，出版；出版物。",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.9
+    },
+    {
+      "question": "shelter是什么意思",
+      "ground_truth": "v. 庇护，遮蔽 n. 避难所",
+      "answer": "根据资料，shelter的意思是：v. 庇护，遮蔽；n. 避难所，庇护所。",
+      "faithfulness": 1.0,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.9
+    },
+    {
+      "question": "measure是什么意思",
+      "ground_truth": "v. 测量 n. 措施，尺寸",
+      "answer": "根据资料，measure的意思是：v.衡量，测量；n.衡量；措施，方法。",
+      "faithfulness": 0.5,
+      "answer_relevancy": 1.0,
+      "context_precision": 0.0
+    }
+  ]
+}
