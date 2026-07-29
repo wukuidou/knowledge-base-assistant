@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python hello_llm.py)",
+      "Bash(python *)",
+      "Bash(.venv/Scripts/python *)",
+      "Bash(pip list *)",
+      "Bash(findstr -i \"llama chroma\")",
+      "Bash(.venv/Scripts/pip list *)",
+      "Bash(findstr -i \"dotenv\")",
+      "Bash(PYTHONIOENCODING=utf-8 python ingest.py)",
+      "Bash(PYTHONIOENCODING=utf-8 .venv/Scripts/python ingest.py)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
+    ]
+  }
+}
